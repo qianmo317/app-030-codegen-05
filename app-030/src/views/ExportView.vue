@@ -159,12 +159,15 @@ const genderText = (gender: string): string => (gender === 'male' ? '男' : '女
                 <td>{{ diff.orgUnit || '—' }}</td>
                 <td>{{ diff.reason }}</td>
                 <td>
-                  <RouterLink
-                    class="clickable"
-                    :to="{ path: `/merge/${project.id}`, query: diff.sourceRow ? { row: String(diff.sourceRow) } : {} }"
-                  >
-                    去归并页处理
-                  </RouterLink>
+                  <div class="toolbar">
+                    <RouterLink class="btn btn-sm btn-accent" :to="`/review/${project.id}`">去批量复核</RouterLink>
+                    <RouterLink
+                      class="clickable"
+                      :to="{ path: `/merge/${project.id}`, query: diff.sourceRow ? { row: String(diff.sourceRow) } : {} }"
+                    >
+                      逐条处理
+                    </RouterLink>
+                  </div>
                 </td>
               </tr>
             </tbody>

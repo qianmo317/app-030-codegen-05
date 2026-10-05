@@ -279,6 +279,13 @@ const rowLabel = (sizeCode: string, isSpecial: boolean): string =>
       <div class="spacer"></div>
       <div class="toolbar">
         <button class="btn btn-sm" type="button" @click="remerge">重新归并</button>
+        <RouterLink
+          class="btn btn-sm"
+          :class="pendingPersons.length || summary.unmerged.length || duplicatePersons.length ? 'btn-accent' : ''"
+          :to="`/review/${project.id}`"
+        >
+          异常批量复核工作台（待确认 {{ pendingPersons.length }} / 未归并 {{ summary.unmerged.length }} / 疑似重复 {{ duplicatePersons.filter((person) => person.status === 'active').length }}）
+        </RouterLink>
         <RouterLink class="btn btn-sm btn-primary" :to="`/summary/${project.id}`">查看汇总与守恒</RouterLink>
       </div>
     </div>

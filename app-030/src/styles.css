@@ -844,3 +844,38 @@ table.data-table tr.row-highlight td {
     flex-wrap: wrap;
   }
 }
+/* --------------------------- 异常批量复核工作台 --------------------------- */
+
+.review-table .check-col {
+  width: 34px;
+  text-align: center;
+}
+
+.review-table .check-col input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+table.data-table tr.row-selected td {
+  background: #eef6ff;
+}
+
+table.data-table tr.row-rolledback td {
+  color: var(--ink-soft);
+  background: #f5f5f5;
+}
+
+.delta-up {
+  color: var(--ok, #1f7a3d);
+  font-family: var(--mono);
+}
+
+.delta-down {
+  color: var(--danger);
+  font-family: var(--mono);
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
