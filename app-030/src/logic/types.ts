@@ -55,6 +55,12 @@ export type AnomalyCode =
 /** active = 计入有效人数；invalid = 无效行；duplicate = 被确认为重复并排除 */
 export type PersonStatus = 'active' | 'invalid' | 'duplicate'
 
+/** 异常复核工作台的三类桶 */
+export type ReviewBucketKey = 'pending' | 'unmerged' | 'duplicate'
+
+/** 整批处置方式：特殊体型标记 / 判无效 / 统一填号型 / 清除疑似重复标记 */
+export type BulkActionType = 'special' | 'invalid' | 'assign_size' | 'clear_duplicate'
+
 export type ManualOverride = { sizeCode: string; by: string; reason: string; at: number }
 
 export type PersonResult = {
@@ -104,6 +110,50 @@ export type ImportRecord = {
   skipped: number
 }
 
+/**
+ * 整批处置前每人的字段快照：回滚时逐字段还原（只还原处置动过的字段），
+ * 不整项目覆盖，避免误伤处置之间发生的逐行操作。
+ */
+export type BulkDisposalTouch = {
+  personId: string
+  status: PersonStatus
+  statusReason: string
+  specialFlag: string | null
+  needsConfirm: boolean
+  possibleDuplicateOf: string | null
+  result: PersonResult | null
+}
+
+/**
+ * 整批处置批次（审计 + 回滚依据）。
+ * forecastTotals/forecastRows 是提交前演算的结果快照，提交后必须与真处置一致，否则不允许落盘。
+ */
+export type BulkDisposal = {
+  id: string
+  action: BulkActionType
+  /** 动作参数：special → 特殊标记码；invalid → 'invalid'/'duplicate'；assign_size → 号型 */
+  actionValue: string
+  reason: string
+  by: string
+  at: number
+  /** 处置覆盖范围的描述：如「班级 高一(3)班（42 条）」或「自选 18 条」 */
+  scopeSummary: string
+  orgUnit: string
+  batch: string
+  /** 当时工作台勾选的三类桶（筛选范围，留痕用） */
+  buckets: ReviewBucketKey[]
+  affectedIds: string[]
+  affectedCount: number
+  touches: BulkDisposalTouch[]
+  forecastTotals: Record<string, number>
+  forecastRows: { sizeCode: string; gender: Gender; isSpecial: boolean; qty: number }[]
+  forecastRemaining: number
+  forecastUnmerged: number
+  rolledBack: boolean
+  rolledBackAt: number | null
+  rollbackBy: string | null
+}
+
 export type Project = {
   id: string
   name: string
@@ -113,6 +163,8 @@ export type Project = {
   batches: string[]
   persons: Person[]
   imports: ImportRecord[]
+  /** 整批异常复核处置批次（留痕 + 回滚依据），旧项目无此字段时按空数组处理 */
+  bulkDisposals?: BulkDisposal[]
   perf?: { mergeMs?: number; mergeCount?: number; importParseMs?: number; importRows?: number }
   createdAt: number
   updatedAt: number

@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/measure/:id', name: 'measure', component: () => import('../views/MeasureView.vue') },
     { path: '/import/:id', name: 'import', component: () => import('../views/ImportView.vue') },
     { path: '/merge/:id', name: 'merge', component: () => import('../views/MergeView.vue') },
+    { path: '/review/:id', name: 'review', component: () => import('../views/ReviewView.vue') },
     { path: '/summary/:id', name: 'summary', component: () => import('../views/SummaryView.vue') },
     { path: '/export/:id', name: 'export', component: () => import('../views/ExportView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' }

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { getProject, initStore, setOperator, store } from './logic/store'
+import { reviewRowCount } from './logic/review'
 
 const route = useRoute()
 const operatorDraft = ref(store.operator)
@@ -19,6 +20,7 @@ watch(
 
 const projectId = computed(() => (typeof route.params.id === 'string' ? route.params.id : ''))
 const project = computed(() => (projectId.value ? getProject(projectId.value) : undefined))
+const pendingReviewCount = computed(() => (project.value ? reviewRowCount(project.value) : 0))
 
 const tabs = computed(() => {
   if (!projectId.value) return []
@@ -26,6 +28,7 @@ const tabs = computed(() => {
     { to: `/measure/${projectId.value}`, label: '量体录入' },
     { to: `/import/${projectId.value}`, label: '批量导入' },
     { to: `/merge/${projectId.value}`, label: '归并结果' },
+    { to: `/review/${projectId.value}`, label: '异常批量复核' },
     { to: `/summary/${projectId.value}`, label: '汇总与守恒' },
     { to: `/export/${projectId.value}`, label: '导出下单表' }
   ]
@@ -68,6 +71,9 @@ async function commitOperator(): Promise<void> {
     <div v-if="tabs.length" class="tab-nav no-print">
       <div class="tab-nav-inner">
         <RouterLink v-for="tab in tabs" :key="tab.to" :to="tab.to">{{ tab.label }}</RouterLink>
+        <span v-if="pendingReviewCount > 0" class="badge badge-danger" style="align-self: center; margin-left: 8px">
+          待复核 {{ pendingReviewCount }}
+        </span>
         <span v-if="project" class="badge badge-info" style="align-self: center; margin-left: auto">
           规则 {{ project.ruleVersion }} ｜ 已录入 {{ project.persons.length }} 条
         </span>

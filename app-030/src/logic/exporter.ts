@@ -1,10 +1,11 @@
 /**
- * 导出：下单汇总表 / 量体明细 / 特殊体型清单 / 备货建议。
+ * 导出：下单汇总表 / 量体明细 / 特殊体型清单 / 备货建议 / 批量复核留痕。
  * 页面预览、CSV、XLSX 与打印预览共用同一份数据，保证逐行一致。
  */
 import type { Gender, Person, Project, SizeRule, SummaryRow } from './types'
 import { specialFlagLabel } from './sizeRules'
 import { conservationText, type Summary } from './merge'
+import { disposalActionLabel } from './review'
 import { chestWaistDiffCm, formatCm } from './precision'
 import type { Sheet } from './xlsx'
 
@@ -254,4 +255,87 @@ export function detailWorkbookSheets(ctx: BaseContext): Sheet[] {
     { name: '量体明细', rows: detailRows(ctx) },
     { name: '特殊体型清单', rows: specialRows(ctx) }
   ]
+}
+
+/* ------------------------------- 批量复核留痕 ------------------------------- */
+
+export const BULK_DISPOSAL_HEADER = [
+  '处置时间',
+  '状态',
+  '回滚时间',
+  '回滚人',
+  '处置批次（范围）',
+  '班级/车间',
+  '批次',
+  '处置方式',
+  '动作参数',
+  '处置条数',
+  '处置原因',
+  '操作人',
+  '处置后总录入',
+  '处置后无效行',
+  '处置后重复行',
+  '处置后有效人数',
+  '处置后常规档',
+  '处置后特殊单列',
+  '处置后未归并行',
+  '处置后剩余待复核',
+  '影响人员行号'
+]
+
+type BulkDisposalContext = BaseContext & {
+  operator: string
+  generatedAt: Date
+}
+
+function timeText(value: number | null): string {
+  return value ? new Date(value).toLocaleString('zh-CN') : ''
+}
+
+/**
+ * 整批异常复核处置留痕（页面与导出共用同一份数据）。
+ * 每一批记录：是哪一批（范围）、谁做的、处置了多少条、处置后的人数结果、是否已回滚。
+ */
+export function bulkDisposalRows(ctx: BulkDisposalContext): (string | number)[][] {
+  const { rule, project } = ctx
+  const rows: (string | number)[][] = [BULK_DISPOSAL_HEADER]
+  // 同毫秒内的多批处置按项目内追加顺序（即 id 生成顺序）稳定倒序展示
+  const order = new Map((project.bulkDisposals ?? []).map((item, index) => [item.id, index]))
+  const disposals = [...(project.bulkDisposals ?? [])].sort(
+    (a, b) => b.at - a.at || (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0)
+  )
+  for (const disposal of disposals) {
+    const byKey = new Map(project.persons.map((person) => [person.id, person]))
+    const rowNumbers = disposal.affectedIds
+      .map((id) => byKey.get(id)?.sourceRow)
+      .filter((value): value is number => typeof value === 'number')
+    rows.push([
+      timeText(disposal.at),
+      disposal.rolledBack ? '已回滚' : '生效中',
+      timeText(disposal.rolledBackAt),
+      disposal.rollbackBy ?? '',
+      disposal.scopeSummary,
+      disposal.orgUnit,
+      disposal.batch,
+      disposalActionLabel(disposal, rule),
+      disposal.actionValue,
+      disposal.affectedCount,
+      disposal.reason,
+      disposal.by,
+      disposal.forecastTotals.totalRows ?? '',
+      disposal.forecastTotals.invalidRows ?? '',
+      disposal.forecastTotals.duplicateRows ?? '',
+      disposal.forecastTotals.validRows ?? '',
+      disposal.forecastTotals.regularQty ?? '',
+      disposal.forecastTotals.specialQty ?? '',
+      disposal.forecastUnmerged ?? '',
+      disposal.forecastRemaining,
+      rowNumbers.join('、')
+    ])
+  }
+  return rows
+}
+
+export function bulkDisposalWorkbookSheets(ctx: BulkDisposalContext): Sheet[] {
+  return [{ name: '批量复核留痕', rows: bulkDisposalRows(ctx) }]
 }

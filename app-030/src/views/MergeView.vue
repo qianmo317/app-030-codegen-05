@@ -5,6 +5,13 @@ import { ensureMerged, flushProject, getProject, getRule, persistProject, store 
 import { buildSummary, conservationText } from '../logic/merge'
 import { alignToStep, isSizeCodeValid, normalizeSizeCodeInput, specialFlagLabel } from '../logic/sizeRules'
 import { chestWaistDiffCm, cmToHalfUnits, formatCm, formatHalfUnits } from '../logic/precision'
+import {
+  canRollback,
+  countByBucket,
+  disposalActionLabel,
+  reviewablePersons,
+  reviewRowCount
+} from '../logic/review'
 import type { Person, PersonStatus } from '../logic/types'
 
 const route = useRoute()
@@ -41,9 +48,20 @@ watch(
 
 const pendingPersons = computed(() =>
   (project.value?.persons ?? []).filter(
-    (person) => person.status === 'active' && (person.anomaly.length > 0 || person.needsConfirm)
+    (person) => person.status === 'active' && person.needsConfirm
   )
 )
+
+const reviewRows = computed(() => (project.value ? reviewablePersons(project.value) : []))
+const reviewCounts = computed(() => countByBucket(reviewRows.value))
+const recentDisposals = computed(() => {
+  const list = project.value?.bulkDisposals ?? []
+  const order = new Map(list.map((item, index) => [item.id, index]))
+  return [...list]
+    .filter((item) => !item.rolledBack)
+    .sort((a, b) => b.at - a.at || (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0))
+    .slice(0, 5)
+})
 
 const specialPersons = computed(() =>
   (project.value?.persons ?? []).filter((person) => person.specialFlag && person.status === 'active')
@@ -284,6 +302,65 @@ const rowLabel = (sizeCode: string, isSpecial: boolean): string =>
     </div>
 
     <p v-if="message" class="notice notice-ok">{{ message }}</p>
+
+    <div v-if="reviewRowCount(project) > 0" class="card card-accent-warn">
+      <div class="card-head">
+        <h3>异常行批量复核（{{ reviewRowCount(project) }} 行待处理）</h3>
+        <div class="spacer"></div>
+        <span class="badge badge-warn">待确认 {{ reviewCounts.pending }}</span>
+        <span class="badge badge-danger">没能归并 {{ reviewCounts.unmerged }}</span>
+        <span class="badge badge-info">疑似重复 {{ reviewCounts.duplicate }}</span>
+        <RouterLink class="btn btn-sm btn-primary" :to="`/review/${project.id}`">打开批量复核工作台</RouterLink>
+      </div>
+      <div class="card-body tight">
+        <p class="hint">
+          快做完时剩下的「身高胸围对不上、胸腰差落不进任何一档、跟别人重的」可以在工作台上按班级 / 批次整批选中，
+          一次打同一种特殊体型标记、一次整批判无效、或整批填同一个号型并写明原因；点处置前先演算有效人数与各档人数变化，
+          演算与真处置对得上才允许提交，且整批可回滚。
+        </p>
+      </div>
+    </div>
+
+    <div v-if="recentDisposals.length" class="card">
+      <div class="card-head">
+        <h3>最近生效中的整批处置（{{ recentDisposals.length }} 批）</h3>
+        <div class="spacer"></div>
+        <span class="hint">完整留痕与回滚在批量复核工作台</span>
+        <RouterLink class="btn btn-sm" :to="`/review/${project.id}`">去工作台</RouterLink>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>处置批次（范围）</th>
+              <th>处置方式</th>
+              <th class="num">条数</th>
+              <th>原因</th>
+              <th>操作人</th>
+              <th class="num">处置后有效人数</th>
+              <th>可回滚</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="disposal in recentDisposals" :key="disposal.id">
+              <td>{{ new Date(disposal.at).toLocaleString('zh-CN') }}</td>
+              <td style="white-space: normal; min-width: 160px">{{ disposal.scopeSummary }}</td>
+              <td>{{ disposalActionLabel(disposal, rule) }}</td>
+              <td class="num">{{ disposal.affectedCount }}</td>
+              <td style="white-space: normal; min-width: 160px">{{ disposal.reason }}</td>
+              <td>{{ disposal.by }}</td>
+              <td class="num">{{ disposal.forecastTotals.validRows ?? '—' }}</td>
+              <td>
+                <span :class="canRollback(project, disposal.id) ? 'badge badge-ok' : 'badge'">
+                  {{ canRollback(project, disposal.id) ? '可整批回滚' : '其后还有更新批次' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <div class="card" :class="summary.unmerged.length ? 'card-accent-danger' : 'card-accent-ok'">
       <div class="card-head">

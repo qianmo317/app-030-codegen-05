@@ -5,6 +5,7 @@ import { ensureMerged, flushProject, getProject, getRule, store } from '../logic
 import { buildSummary, conservationText } from '../logic/merge'
 import {
   buildOrderSheet,
+  bulkDisposalWorkbookSheets,
   detailRows,
   detailWorkbookSheets,
   exportBaseName,
@@ -80,10 +81,10 @@ async function exportOrderCsv(): Promise<void> {
 async function exportDetailXlsx(): Promise<void> {
   const ctx = context()
   if (!ctx || !(await prepare())) return
-  const sheets = detailWorkbookSheets(ctx)
+  const sheets = [...detailWorkbookSheets(ctx), ...bulkDisposalWorkbookSheets(ctx)]
   const fileName = exportBaseName(ctx, '量体明细与特殊体型清单', 'xlsx')
   downloadBlob(buildXlsxBlob(sheets), fileName)
-  notify(`已导出量体明细（含号型结果，共 ${project.value?.persons.length ?? 0} 行）与特殊体型清单 → ${fileName}`)
+  notify(`已导出量体明细（含号型结果，共 ${project.value?.persons.length ?? 0} 行）、特殊体型清单与批量复核留痕 → ${fileName}`)
 }
 
 async function exportDetailCsv(): Promise<void> {

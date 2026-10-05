@@ -662,6 +662,81 @@ table.data-table tr.row-highlight td {
   gap: 6px;
 }
 
+/* ----------------------------- 异常批量复核工作台 ----------------------------- */
+
+.review-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.review-group-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.review-group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.review-group-label input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.review-group-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.forecast-box {
+  border: 1px solid #eccf9a;
+  border-radius: 8px;
+  background: var(--warn-soft);
+  padding: 10px 12px;
+}
+
+.forecast-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.forecast-arrow {
+  color: var(--ink-soft);
+  margin: 0 4px;
+  font-family: var(--mono);
+}
+
+td.num.delta-up {
+  color: var(--ok);
+  font-weight: 650;
+}
+
+td.num.delta-down {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+tr.row-rolledback td {
+  opacity: 0.55;
+  background: #f7fafc;
+}
+
 /* ----------------------------- 录入页（移动端优先） ----------------------------- */
 
 .measure-grid {
